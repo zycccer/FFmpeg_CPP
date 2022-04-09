@@ -19,7 +19,7 @@ public:
     AVPacket* Encode(AVFrame *frame,int stream_index,int64_t pts,int64_t time_base);
     int GetFrameSize();//获取一帧数据 每个通道需要多少个采样点
     int GetSampleFormat();//获取编码器需要的采样格式
-
+    AVCodecContext* GetCodecContext();
 private:
     int channels_ = 2;
     int sample_rate_ = 44100;

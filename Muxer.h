@@ -33,6 +33,9 @@ public:
 
     int open();
 
+    int GetAudioStreamIndex();
+    int GetVideoStreamIndex();
+
 private:
     AVFormatContext *fmt_ctx_ = NULL;
     std::string url_ = "";
