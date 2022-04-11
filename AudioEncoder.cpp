@@ -123,6 +123,7 @@ int AudioEncoder::Encode(AVFrame *frame, int stream_index, int64_t pts, int64_t 
             av_packet_free(&packet);
             ret = -1;
         }
+        printf("AAC pts:%lld\n", packet->pts);
         packets.push_back(packet);
     }
     return ret;

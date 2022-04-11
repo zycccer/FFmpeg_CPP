@@ -167,6 +167,7 @@ int main(int argc, char **argv)
 
     size_t read_len = 0;
     AVPacket *packet =  NULL;
+    std::vector<AVPacket*> packets;
     int audio_index = mp4_muxer.GetAudioStreamIndex();
     int video_index = mp4_muxer.GetVideoStreamIndex();
     while (1) {
@@ -183,16 +184,28 @@ int main(int argc, char **argv)
             }
 
             if(video_finish != 1) {
-                packet = video_encoder.Encode(yuv_frame_buf, yuv_frame_size, video_index,
-                                              video_pts, video_time_base);
+//                packet = video_encoder.Encode(yuv_frame_buf, yuv_frame_size, video_index,
+//                                              video_pts, video_time_base);
+                ret = video_encoder.Encode(yuv_frame_buf, yuv_frame_size,
+                                           video_index, video_pts, video_time_base,
+                                           packets);
             }else {
-                packet = video_encoder.Encode(NULL, 0, video_index,
-                                              video_pts, video_time_base);
+//                packet = video_encoder.Encode(NULL, 0, video_index,
+//                                              video_pts, video_time_base);
+                printf("flush video encoder\n");
+                ret = video_encoder.Encode(NULL, 0,
+                                           video_index, video_pts, video_time_base,
+                                           packets);
             }
             video_pts += video_frame_duration;  // 叠加pts
-            if(packet) {
-                mp4_muxer.SendPacket(packet);
+            if(ret >= 0) {
+                for(int i = 0; i < packets.size(); i++) {
+
+                    ret = mp4_muxer.SendPacket(packets[i]);
+                    printf("123");
+                }
             }
+            packets.clear();
         } else if(audio_finish != 1) {
             read_len = fread(pcm_frame_buf, 1, pcm_frame_size, in_pcm_fd);
             if(read_len < pcm_frame_size) {
@@ -205,17 +218,29 @@ int main(int argc, char **argv)
                 ret = audio_resampler.ResampleFromS16ToFLTP(pcm_frame_buf, fltp_frame);
                 if(ret < 0)
                     printf("ResampleFromS16ToFLTP error\n");
-                packet = audio_encoder.Encode(fltp_frame, audio_index,
-                                              audio_pts, audio_time_base);
+//                packet = audio_encoder.Encode(fltp_frame, audio_index,
+//                                              audio_pts, audio_time_base);
+                    ret = audio_encoder.Encode(fltp_frame,audio_index,audio_pts,audio_time_base,packets);
+
                 FreePcmFrame(fltp_frame);
             }else {
-                packet = audio_encoder.Encode(NULL,video_index,
-                                              audio_pts, audio_time_base);
+                printf("flush audio encoder\n");
+//                packet = audio_encoder.Encode(NULL,video_index,
+//                                              audio_pts, audio_time_base);
+                ret = audio_encoder.Encode(NULL,audio_index,audio_pts,audio_time_base,packets);
+
             }
             audio_pts += audio_frame_duration;  // 叠加pts
-            if(packet) {
-                mp4_muxer.SendPacket(packet);
+
+
+            if(ret >= 0) {
+                for(int i = 0; i < packets.size(); i++) {
+
+                    ret = mp4_muxer.SendPacket(packets[i]);
+
+                }
             }
+            packets.clear();
         }
     }
     ret = mp4_muxer.SendTrailer();
